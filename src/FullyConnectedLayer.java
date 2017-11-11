@@ -6,14 +6,11 @@ import java.util.Random;
  * It only keeps track of the activations of its input layer.
  * Uses a sigmoid as its activation function.
  */
-public class FullyConnectedLayer {
-	public int inputLength;
-	public int outputLength;
+public class FullyConnectedLayer extends Layer{
 	public double[][] weights;
 	public double[] inActivations;
 	public double[] outBiases;
 	private double[] outZs;
-	public double[] outActivations;
 	public double[] outDeltas;
 	private double[][] weightsGrad;
 	private double[] outBiasesGrad;
@@ -30,7 +27,6 @@ public class FullyConnectedLayer {
 		
 		//create output layer
 		this.outZs = new double[outputLength];
-		this.outActivations = new double[outputLength];
 		this.outDeltas = new double[outputLength];
 		
 		//create weights and biases (initially zeros)
@@ -54,11 +50,15 @@ public class FullyConnectedLayer {
 	
 	//given the activations for its input layer,
 	//	returns activations of its output layer
-	public double[] feedForward(double[] inputActivations) {
+	@Override
+	public void feedForward(double[] inputActivations) {		
 		//save activations for backpropagation
 		for(int j=0; j<this.inputLength; j++) {
 			this.inActivations[j] = inputActivations[j];
 		}
+		
+		//array of output activations to return
+		double[] outActivations = new double[this.outputLength];
 		
 		//calculate z and a
 		for(int j=0; j<this.outputLength; j++) {	//for each neuron in output layer
@@ -68,10 +68,13 @@ public class FullyConnectedLayer {
 			}
 			tmpZ = tmpZ + this.outBiases[j];				//add bias
 			this.outZs[j] = tmpZ;						//store z value
-			this.outActivations[j] = actFn(this.outZs[j]);				//store a value
+			outActivations[j] = actFn(this.outZs[j]);				//store a value
 		}
 		
-		return this.outActivations;
+		//continue feeding forward if we can, unless the next layer is the final layer
+		if(this.nextLayer != null) {
+			this.nextLayer.feedForward(outActivations);
+		}
 	}
 	
 	//given the errors for its output layer,

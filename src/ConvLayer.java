@@ -10,6 +10,6 @@
  * 
  */
 
-public class ConvLayer {
+public class ConvLayer extends Layer{
 	
 }
