@@ -50,7 +50,6 @@ public class FullyConnectedLayer extends Layer{
 	
 	//given the activations for its input layer,
 	//	returns activations of its output layer
-	@Override
 	public void feedForward(double[] inputActivations) {		
 		//save activations for backpropagation
 		for(int j=0; j<this.inputLength; j++) {
@@ -72,8 +71,8 @@ public class FullyConnectedLayer extends Layer{
 		}
 		
 		//continue feeding forward if we can, unless the next layer is the final layer
-		if(this.nextLayer != null) {
-			this.nextLayer.feedForward(outActivations);
+		if(this.getNextLayer() != null) {
+			this.getNextLayer().feedForward(outActivations);
 		}
 	}
 	
@@ -81,13 +80,13 @@ public class FullyConnectedLayer extends Layer{
 	//	returns the errors for its input layer
 	//	increments weight/bias gradients.
 	//does not actually update weights.
-	public double[] backpropagate(double[] outputErrors) {
+	public void backpropagate(double[] outputErrors) {
 		//save output delta
 		for(int j=0; j<this.outputLength; j++) {
 			this.outDeltas[j] = outputErrors[j];
 		}
 		
-		//error for the input layer to return
+		//error for the input layer to pass on
 		double[] inDeltas = new double[inputLength];
 		
 		for(int k=0; k<this.inputLength; k++) {
@@ -109,7 +108,9 @@ public class FullyConnectedLayer extends Layer{
 			}
 		}
 		
-		return inDeltas;
+		if(this.getPrevLayer() != null) {
+			this.getPrevLayer().backpropagate(inDeltas);
+		}
 	}
 	
 	//updates weights and biases from saved gradients

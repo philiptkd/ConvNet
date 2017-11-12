@@ -2,10 +2,14 @@
 public class Layer {
 	public int inputLength;
 	public int outputLength;
-	public Layer prevLayer;
-	public Layer nextLayer;
+	private Layer prevLayer;
+	private Layer nextLayer;
 
 	public void feedForward(double[] inputActivations) {
+		
+	}
+	
+	public void backpropagate(double[] outputErors) {
 		
 	}
 	
@@ -29,5 +33,17 @@ public class Layer {
 		else {
 			throw new LayerCompatibilityException("The requested previous layer has " + prev.outputLength + " output nodes, but this layer has " + this.inputLength + " input nodes.");
 		}
+	}
+	
+	public Layer getNextLayer() {
+		return this.nextLayer;
+	}
+	
+	public Layer getPrevLayer() {
+		return this.prevLayer;
+	}
+	
+	public void updateWeights(double learningRate, int miniBatchSize) {
+		
 	}
 }
