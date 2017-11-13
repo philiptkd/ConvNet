@@ -40,7 +40,7 @@ public class Main {
 		if(L1 != null) {
 			L1.kernels[0][0][0][0] = 1;
 			L1.kernels[0][0][0][1] = 0;
-			L1.kernels[0][0][1][0] = 1;
+			L1.kernels[0][0][1][0] = 0;
 			L1.kernels[0][0][1][1] = 0;
 			L1.outBiases[0] = 0;
 		}

@@ -119,7 +119,39 @@ public class ConvLayer extends Layer{
 			}
 		}
 		
+		//create array to hold and pass output activations 
+		double[] outActivations = new double[this.outputDepth*this.outputHeight*this.outputWidth];
 		
+		//for each output pixel
+		for(int f=0; f<this.outputDepth; f++) {	//for each filter
+			for(int i=0; i<this.outputHeight; i++) { //for each output row
+				for(int j=0; j<this.outputWidth; j++) { //for each output column
+					
+					//calculate the dot product of the kernel with the input
+					double tmpZ = 0;
+					for(int d=0; d<this.kernelDepth; d++) {	//for each kernel depth slice
+						for(int m=0; m<this.kernelHeight; m++) { //for each kernel row
+							for(int n=0; n<this.kernelWidth; n++) { //for each kernel column
+								tmpZ += this.inActivations[d][i+m][j+n]*this.kernels[f][d][m][n];
+							}
+						}
+					}
+					//add the bias
+					tmpZ += this.outBiases[f];
+					
+					//save
+					this.outZs[f][i][j] = tmpZ;
+					
+					//calculate output activation
+					outActivations[f*this.outputHeight*this.outputWidth + i*this.outputWidth + j] = actFn(tmpZ);
+				}
+			}
+		}
+		
+		//pass activations to next layer
+		if(this.getNextLayer() != null) {
+			this.getNextLayer().feedForward(outActivations);
+		}
 	}
 	
 	public void backpropagate(double[] outputErrors) {
