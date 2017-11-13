@@ -87,8 +87,9 @@ public class FullyConnectedLayer extends Layer{
 		}
 		
 		//error for the input layer to pass on
-		double[] inDeltas = new double[inputLength];
+		double[] inDeltas = new double[this.inputLength];
 		
+		//calculate errors
 		for(int k=0; k<this.inputLength; k++) {
 			for(int j=0; j<this.outputLength; j++) {	//sum over j
 				inDeltas[k] = inDeltas[k] + this.outDeltas[j]*this.weights[j][k];
@@ -108,6 +109,7 @@ public class FullyConnectedLayer extends Layer{
 			}
 		}
 		
+		//continue backpropagating
 		if(this.getPrevLayer() != null) {
 			this.getPrevLayer().backpropagate(inDeltas);
 		}

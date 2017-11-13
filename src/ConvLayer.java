@@ -136,6 +136,7 @@ public class ConvLayer extends Layer{
 							}
 						}
 					}
+					
 					//add the bias
 					tmpZ += this.outBiases[f];
 					
@@ -164,7 +165,64 @@ public class ConvLayer extends Layer{
 			}
 		}
 		
+		//create array to hold and pass the input errors
+		double[] inDeltas = new double[this.inputDepth*this.inputHeight*this.inputWidth];
 		
+		//for each input pixel
+		for(int p=0; p<this.inputDepth; p++) {	//for each input/kernel depth slice
+			for(int m=0; m<this.inputHeight; m++) {	//for each input row
+				for(int n=0; n<this.inputWidth; n++) {	//for each input column
+					
+					//calculate the dot product of the flipped kernel with the output errors
+					double tmpD = 0;
+					for(int q=0; q<this.outputDepth; q++) {
+						for(int i=0; i<this.outputHeight; i++) {
+							for(int j=0; j<this.outputWidth; j++) {
+								tmpD += this.outDeltas[q][i][j]*this.kernels[q][p][m-i][n-j];
+							}
+						}
+					}
+					
+					//multiply by sigma prime
+					tmpD = tmpD*this.inActivations[p][m][n]*(1 - this.inActivations[p][m][n]);
+					
+					//save
+					inDeltas[p*this.inputHeight*this.inputWidth + m*this.inputWidth + n] = tmpD;
+				}
+			}
+		}
+		
+		//increment bias gradients for the output layer
+		//each bias contributes to a whole depth slice of output errors
+		for(int q=0; q<this.numFilters; q++) {
+			for(int i=0; i<this.outputHeight; i++) {
+				for(int j=0; j<this.outputWidth; j++) {
+					this.outBiasesGrad[q] += this.outDeltas[q][i][j];
+				}
+			}
+		}
+		
+		//increment weight gradients
+		for(int q=0; q<this.numFilters; q++) {
+			for(int p=0; p<this.kernelDepth; p++) {
+				for(int u=0; u<this.kernelHeight; u++) {
+					for(int v=0; v<this.kernelWidth; v++) {
+						
+						//sum over the output pixels that this weight affected
+						for(int i=0; i<this.outputHeight; i++) {
+							for(int j=0; j<this.outputWidth; j++) {
+								this.kernelGrad[q][p][u][v] += this.outDeltas[q][i][j]*this.inActivations[p][i+u][j+v];
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		//continue backpropagating
+		if(this.getPrevLayer() != null) {
+			this.getPrevLayer().backpropagate(inDeltas);
+		}
 	}
 	
 	public void updateWeights(double learningRate, int miniBatchSize) {
