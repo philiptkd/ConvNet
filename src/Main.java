@@ -42,7 +42,7 @@ public class Main {
 		catch (LayerCompatibilityException e) {
 			System.out.println(e.getMessage());
 		}
-				
+		
 		//create network
 		Layer[] layerList = {L0,L1,L2,L3,L4,L5,L6};
 		Network net = new Network(layerList, "mnist_train.csv", "mnist_test.csv", "weights");

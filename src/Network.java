@@ -76,7 +76,6 @@ public class Network {
 							throw new IOException("Input was loaded incorrectly if this is a greyscale image.");
 						}
 					}
-					//this.printInputActivations();
 					
 					//load correct classification
 					int correctClassification = (int)trainingLabels[shuffledList[input]];
