@@ -118,15 +118,15 @@ public class FullyConnectedLayer extends Layer{
 	public void updateWeights(double learningRate, int miniBatchSize) {
 		//update biases and reset bias gradients
 		for(int j=0; j<this.outputLength; j++) {
-			outBiases[j] = outBiases[j] - learningRate*outBiasesGrad[j]/miniBatchSize;
-			outBiasesGrad[j] = 0;
+			this.outBiases[j] = this.outBiases[j] - learningRate*this.outBiasesGrad[j]/miniBatchSize;
+			this.outBiasesGrad[j] = 0;
 		}
 		
 		//update weights and reset weight gradients
-		for(int j=0; j<outputLength; j++) {
-			for(int k=0; k<inputLength; k++) {
-				weights[j][k] = weights[j][k] - learningRate*weightsGrad[j][k]/miniBatchSize;
-				weightsGrad[j][k] = 0;
+		for(int j=0; j<this.outputLength; j++) {
+			for(int k=0; k<this.inputLength; k++) {
+				this.weights[j][k] = this.weights[j][k] - learningRate*this.weightsGrad[j][k]/miniBatchSize;
+				this.weightsGrad[j][k] = 0;
 			}
 		}
 	}

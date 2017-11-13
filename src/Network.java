@@ -50,8 +50,8 @@ public class Network {
 		}
 		
 		//count the amount of input data and load it in
-		this.getNumLines();
-		this.loadData();
+		//this.getNumLines();
+		//this.loadData();
 	}
 	
 	//do the actual training
@@ -191,12 +191,12 @@ public class Network {
 
 	//shuffles a list
 	private static void shuffle(int[] list) {
-//		for(int i=list.length-1; i>=0; i--) {
-//			int index = rand.nextInt(i+1);
-//			int tmp = list[index];
-//			list[index] = list[i];
-//			list[i] = tmp;
-//		}
+		for(int i=list.length-1; i>=0; i--) {
+			int index = rand.nextInt(i+1);
+			int tmp = list[index];
+			list[index] = list[i];
+			list[i] = tmp;
+		}
 	}
 	
 	public void printInputActivations() {
