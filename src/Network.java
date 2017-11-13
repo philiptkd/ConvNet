@@ -50,8 +50,8 @@ public class Network {
 		}
 		
 		//count the amount of input data and load it in
-		//this.getNumLines();
-		//this.loadData();
+		this.getNumLines();
+		this.loadData();
 	}
 	
 	//do the actual training
