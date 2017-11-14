@@ -19,8 +19,12 @@ public class FullyConnectedLayer extends Layer{
 	//constructor
 	public FullyConnectedLayer(int inputLength, int outputLength) {
 		//save lengths of input and output
-		this.inputLength = inputLength;
-		this.outputLength = outputLength;
+		this.inputDim[0] = 1;
+		this.inputDim[1] = 1;
+		this.inputDim[2] = inputLength;
+		this.outputDim[0] = 1;
+		this.outputDim[1] = 1;
+		this.outputDim[2] = outputLength;
 		
 		//create array to hold input activations
 		this.inActivations = new double[inputLength];
@@ -50,24 +54,31 @@ public class FullyConnectedLayer extends Layer{
 	
 	//given the activations for its input layer,
 	//	returns activations of its output layer
-	public void feedForward(double[] inputActivations) {		
+	public void feedForward(double[][][] inputActivations) {		
 		//save activations for backpropagation
-		for(int j=0; j<this.inputLength; j++) {
-			this.inActivations[j] = inputActivations[j];
+		for(int p=0; p<this.inputDim[0]; p++) {
+			for(int i=0; i<this.inputDim[1]; i++) {
+				for(int j=0; j<this.inputDim[2]; j++) {
+					this.inActivations[p*this.inputDim[1]*this.inputDim[2] + i*this.inputDim[2] + j] = inputActivations[p][i][j];
+				}
+			}
 		}
 		
+		
 		//array of output activations to return
-		double[] outActivations = new double[this.outputLength];
+		double[][][] outActivations = new double[this.outputDim[0]][this.outputDim[1]][this.outputDim[2]];
+		
 		
 		//calculate z and a
-		for(int j=0; j<this.outputLength; j++) {	//for each neuron in output layer
+		//for each neuron in output layer
+		for(int j=0; j<this.outputDim[2]; j++) {	
 			double tmpZ = 0;
-			for(int k=0; k<this.inputLength; k++) {	//for each neuron in input layer
+			for(int k=0; k<this.inputDim[2]; k++) {	//for each neuron in input layer
 				tmpZ = tmpZ + this.inActivations[k]*this.weights[j][k];		//add weighted output
 			}
 			tmpZ = tmpZ + this.outBiases[j];				//add bias
 			this.outZs[j] = tmpZ;						//store z value
-			outActivations[j] = actFn(this.outZs[j]);				//store a value
+			outActivations[0][0][j] = actFn(this.outZs[j]);				//store a value
 		}
 		
 		//continue feeding forward if we can, unless the next layer is the final layer
@@ -80,31 +91,35 @@ public class FullyConnectedLayer extends Layer{
 	//	returns the errors for its input layer
 	//	increments weight/bias gradients.
 	//does not actually update weights.
-	public void backpropagate(double[] outputErrors) {
+	public void backpropagate(double[][][] outputErrors) {
 		//save output delta
-		for(int j=0; j<this.outputLength; j++) {
-			this.outDeltas[j] = outputErrors[j];
+		for(int q=0; q<this.outputDim[0]; q++) {
+			for(int m=0; m<this.outputDim[1]; m++) {
+				for(int n=0; n<this.outputDim[2]; n++) {
+					this.outDeltas[q*this.outputDim[1]*this.outputDim[2] + m*this.outputDim[2] + n] = outputErrors[q][m][n];
+				}
+			}
 		}
 		
 		//error for the input layer to pass on
-		double[] inDeltas = new double[this.inputLength];
+		double[][][] inDeltas = new double[this.inputDim[0]][this.inputDim[1]][this.inputDim[2]];
 		
 		//calculate errors
-		for(int k=0; k<this.inputLength; k++) {
-			for(int j=0; j<this.outputLength; j++) {	//sum over j
-				inDeltas[k] = inDeltas[k] + this.outDeltas[j]*this.weights[j][k];
+		for(int k=0; k<this.inputDim[2]; k++) {
+			for(int j=0; j<this.outputDim[2]; j++) {	//sum over j
+				inDeltas[0][0][k] = inDeltas[0][0][k] + this.outDeltas[j]*this.weights[j][k];
 			}
-			inDeltas[k] = inDeltas[k]*this.inActivations[k]*(1-this.inActivations[k]);	//multiply by sigma prime
+			inDeltas[0][0][k] = inDeltas[0][0][k]*this.inActivations[k]*(1-this.inActivations[k]);	//multiply by sigma prime
 		}
 		
 		//increment bias gradients for the output layer
-		for(int j=0; j<this.outputLength; j++) {
+		for(int j=0; j<this.outputDim[2]; j++) {
 			this.outBiasesGrad[j] = this.outBiasesGrad[j] + this.outDeltas[j];
 		}
 		
 		//increment weight gradients
-		for(int j=0; j<this.outputLength; j++) {
-			for(int k=0; k<this.inputLength; k++) {
+		for(int j=0; j<this.outputDim[2]; j++) {
+			for(int k=0; k<this.inputDim[2]; k++) {
 				this.weightsGrad[j][k] = this.weightsGrad[j][k] + this.outDeltas[j]*this.inActivations[k];
 			}
 		}
@@ -119,14 +134,14 @@ public class FullyConnectedLayer extends Layer{
 	//resets gradients to zero
 	public void updateWeights(double learningRate, int miniBatchSize) {
 		//update biases and reset bias gradients
-		for(int j=0; j<this.outputLength; j++) {
+		for(int j=0; j<this.outputDim[2]; j++) {
 			this.outBiases[j] = this.outBiases[j] - learningRate*this.outBiasesGrad[j]/miniBatchSize;
 			this.outBiasesGrad[j] = 0;
 		}
 		
 		//update weights and reset weight gradients
-		for(int j=0; j<this.outputLength; j++) {
-			for(int k=0; k<this.inputLength; k++) {
+		for(int j=0; j<this.outputDim[2]; j++) {
+			for(int k=0; k<this.inputDim[2]; k++) {
 				this.weights[j][k] = this.weights[j][k] - learningRate*this.weightsGrad[j][k]/miniBatchSize;
 				this.weightsGrad[j][k] = 0;
 			}

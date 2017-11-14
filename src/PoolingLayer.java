@@ -11,7 +11,7 @@ public class PoolingLayer extends Layer{
 	private int outputDepth;
 	private int outputHeight;
 	private int outputWidth;
-	private int[][][] winningUnits;
+	private int[][][][] winningUnits;
 	
 	public PoolingLayer(int[] inputDimensions, int[] windowDimensions) throws LayerCompatibilityException {
 		//check length of parameters
@@ -39,16 +39,20 @@ public class PoolingLayer extends Layer{
 		this.outputHeight = this.inputHeight/this.windowHeight;
 		this.outputWidth = this.inputWidth/this.windowWidth;
 		
-		//set inputLength and outputLength for compatibility checking
-		this.inputLength = this.inputDepth*this.inputHeight*this.inputWidth;
-		this.outputLength = this.outputDepth*this.outputHeight*this.outputWidth;
+		//set inputDim and outputDim for compatibility checking
+		this.inputDim[0] = this.inputDepth;
+		this.inputDim[1] = this.inputHeight;
+		this.inputDim[2] = this.inputWidth;
+		this.outputDim[0] = this.outputDepth;
+		this.outputDim[1] = this.outputHeight;
+		this.outputDim[2] = this.outputWidth;
 		
 		//create array to hold information on which input activations were the highest
-		this.winningUnits = new int[this.outputDepth][this.outputHeight][this.outputWidth];
+		this.winningUnits = new int[this.outputDepth][this.outputHeight][this.outputWidth][3];
 	}
 	
-	public void feedForward(double[] inputActivations) {
-		double[] outActivations = new double[this.outputLength];
+	public void feedForward(double[][][] inputActivations) {
+		double[][][] outActivations = new double[this.outputDim[0]][this.outputDim[1]][this.outputDim[2]];
 		
 		//for every window
 		for(int d=0; d<this.inputDepth; d++) {	//for each depth slice
@@ -57,22 +61,24 @@ public class PoolingLayer extends Layer{
 					
 					//find the max element in the window
 					double max = Double.NEGATIVE_INFINITY;
-					int maxIndex = 0;
+					int[] maxIndices = new int[3];
 					for(int m=0; m<this.windowHeight; m++) {
 						for(int n=0; n<this.windowWidth; n++) {
-							//the index of the current element
-							int index = d*this.inputHeight*this.inputWidth + (i+m)*this.inputWidth + (j+n);
-							
-							if(inputActivations[index] > max) {
-								max = inputActivations[index];
-								maxIndex = index;
+							if(inputActivations[d][i+m][j+n] > max) {
+								max = inputActivations[d][i+m][j+n];
+								maxIndices[0] = d;
+								maxIndices[1] = i+m;
+								maxIndices[2] = j+n;
 							}
 						}
 					}
 					//save maxIndex
-					this.winningUnits[d][i/this.windowHeight][j/this.windowWidth] = maxIndex;
+					this.winningUnits[d][i/this.windowHeight][j/this.windowWidth][0] = maxIndices[0];
+					this.winningUnits[d][i/this.windowHeight][j/this.windowWidth][1] = maxIndices[1];
+					this.winningUnits[d][i/this.windowHeight][j/this.windowWidth][2] = maxIndices[2];
+
 					//route max activation
-					outActivations[(d)*this.outputHeight*this.outputWidth + (i/this.windowHeight)*this.outputWidth + (j/this.windowWidth)] = max;
+					outActivations[d][i/this.windowHeight][j/this.windowWidth] = max;
 				}
 			}
 		}
@@ -83,15 +89,18 @@ public class PoolingLayer extends Layer{
 		
 	}
 	
-	public void backpropagation(double[] outputErrors) {
+	public void backpropagation(double[][][] outputErrors) {
 		//create array to hold the errors we pass back, initialized to zeros
-		double[] inDeltas = new double[this.inputLength];
+		double[][][] inDeltas = new double[this.inputDim[0]][this.inputDim[1]][this.inputDim[2]];
+		int[] maxIndices = new int[3];
 		
 		for(int d=0; d<this.outputDepth; d++) {
 			for(int i=0; i<this.outputHeight; i++) {
 				for(int j=0; j<this.outputWidth; j++) {
-					int maxIndex = this.winningUnits[d][i][j];
-					inDeltas[maxIndex] = outputErrors[d*this.outputHeight*this.outputWidth + i*this.outputWidth + j];
+					maxIndices[0] = this.winningUnits[d][i][j][0];
+					maxIndices[1] = this.winningUnits[d][i][j][1];
+					maxIndices[2] = this.winningUnits[d][i][j][2];
+					inDeltas[maxIndices[0]][maxIndices[1]][maxIndices[2]] = outputErrors[d][i][j];
 				}
 			}
 		}

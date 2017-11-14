@@ -69,9 +69,9 @@ public class Network {
 			for(int miniBatch=0; miniBatch<shuffledList.length/miniBatchSize; miniBatch++) {	//for each miniBatch
 				for(int input=miniBatch*miniBatchSize; input<(miniBatch+1)*miniBatchSize; input++) {	//for each input image
 					//load the initial layer
-					for(int i=0; i<this.inputLayer.outputLength; i++) {
-						this.inputLayer.activations[i] = (double)(this.trainingImages[shuffledList[input]][i])/255.0;	//scale to 0-1
-						if(this.inputLayer.activations[i] < 0 || this.inputLayer.activations[i] > 1)		//for troubleshooting. if this is true, something about our input is wrong
+					for(int i=0; i<this.inputLayer.outputDim[2]; i++) {
+						this.inputLayer.activations[0][0][i] = (double)(this.trainingImages[shuffledList[input]][i])/255.0;	//scale to 0-1
+						if(this.inputLayer.activations[0][0][i] < 0 || this.inputLayer.activations[0][0][i] > 1)		//for troubleshooting. if this is true, something about our input is wrong
 						{
 							throw new IOException("Input was loaded incorrectly if this is a greyscale image.");
 						}
@@ -81,13 +81,13 @@ public class Network {
 					int correctClassification = (int)trainingLabels[shuffledList[input]];
 					
 					//feed forward
-					this.inputLayer.feedForward(new double[0]);
+					this.inputLayer.feedForward(new double[0][0][0]);
 					
 					//calculate error in last layer
 					this.outputLayer.calcFinalError(correctClassification);
 					
 					//backpropagate
-					this.outputLayer.backpropagate(new double[0]);
+					this.outputLayer.backpropagate(new double[0][0][0]);
 				}
 				//update all the weights and reset the gradients
 				for(int i=0; i<this.orderedLayerList.length; i++) {
@@ -103,12 +103,12 @@ public class Network {
 		
 		for(int image=0; image<this.numTestingImages; image++) {
 			//load the input layer
-			for(int pixel=0; pixel<this.inputLayer.outputLength; pixel++) {
-				this.inputLayer.activations[pixel] = (double)this.testingImages[image][pixel]/255.0;	//scale to 0-1
+			for(int pixel=0; pixel<this.inputLayer.outputDim[2]; pixel++) {
+				this.inputLayer.activations[0][0][pixel] = (double)this.testingImages[image][pixel]/255.0;	//scale to 0-1
 			}
 			
 			//feed forward
-			this.inputLayer.feedForward(new double[0]);
+			this.inputLayer.feedForward(new double[0][0][0]);
 	
 			//load correct classification
 			int correctClassification = (int)testingLabels[image];
@@ -116,7 +116,7 @@ public class Network {
 			//see if it classfied correctly
 			double highest = Double.NEGATIVE_INFINITY;
 			int classification = 0;	//arbitrary
-			for(int j=0; j<this.outputLayer.inputLength; j++) {
+			for(int j=0; j<this.outputLayer.inputDim[2]; j++) {
 				if(this.outputLayer.activations[j] > highest) {
 					highest = this.outputLayer.activations[j];
 					classification = j;
@@ -146,9 +146,9 @@ public class Network {
 		}
 				
 		//arrays to hold images and labels
-		this.trainingImages = new int[this.numTrainingImages][this.inputLayer.outputLength];
+		this.trainingImages = new int[this.numTrainingImages][this.inputLayer.outputDim[2]];
 		this.trainingLabels = new int[this.numTrainingImages];
-		this.testingImages = new int[this.numTestingImages][this.inputLayer.outputLength];
+		this.testingImages = new int[this.numTestingImages][this.inputLayer.outputDim[2]];
 		this.testingLabels = new int[this.numTestingImages];
 	}
 
@@ -201,7 +201,7 @@ public class Network {
 	public void printInputActivations() {
 		for(int i=0; i<28; i++) {
 			for(int j=0; j<28; j++) {
-				System.out.format("%04f ", this.inputLayer.activations[i*28+j]);
+				System.out.format("%04f ", this.inputLayer.activations[0][0][i*28+j]);
 			}
 			System.out.println("");
 		}

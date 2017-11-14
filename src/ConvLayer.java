@@ -79,9 +79,13 @@ public class ConvLayer extends Layer{
 		this.outputHeight = this.inputHeight - this.kernelHeight + 1;	//numRows = (H-k1+1)
 		this.outputWidth = this.inputWidth - this.kernelWidth + 1;	//numColumns = (W-k2+1)
 		
-		//save inputLength and outputLength for compatibility testing purposes
-		this.inputLength = this.inputDepth*this.inputHeight*this.inputWidth;
-		this.outputLength = this.outputDepth*this.outputHeight*this.outputWidth;
+		//save in inputDim and outputDim for compatibility checking
+		this.inputDim[0] = this.inputDepth;
+		this.inputDim[1] = this.inputHeight;
+		this.inputDim[2] = this.inputWidth;
+		this.outputDim[0] = this.outputDepth;
+		this.outputDim[1] = this.outputHeight;
+		this.outputDim[2] = this.outputWidth;
 		
 		//create arrays to have appropriate sizes
 		this.inActivations = new double[this.inputDepth][this.inputHeight][this.inputWidth];
@@ -109,18 +113,18 @@ public class ConvLayer extends Layer{
 		}
 	}
 	
-	public void feedForward(double[] inputActivations) {
+	public void feedForward(double[][][] inputActivations) {
 		//save input activations in multidimensional array
 		for(int d=0; d<this.inputDepth; d++) {
 			for(int h=0; h<this.inputHeight; h++) {
 				for(int w=0; w<this.inputWidth; w++) {
-					this.inActivations[d][h][w] = inputActivations[d*this.inputWidth*this.inputHeight + h*this.inputWidth + w];
+					this.inActivations[d][h][w] = inputActivations[d][h][w];
 				}
 			}
 		}
 		
 		//create array to hold and pass output activations 
-		double[] outActivations = new double[this.outputDepth*this.outputHeight*this.outputWidth];
+		double[][][] outActivations = new double[this.outputDepth][this.outputHeight][this.outputWidth];
 		
 		//for each output pixel
 		for(int f=0; f<this.outputDepth; f++) {	//for each filter
@@ -144,7 +148,7 @@ public class ConvLayer extends Layer{
 					this.outZs[f][i][j] = tmpZ;
 					
 					//calculate output activation
-					outActivations[f*this.outputHeight*this.outputWidth + i*this.outputWidth + j] = actFn(tmpZ);
+					outActivations[f][i][j] = actFn(tmpZ);
 				}
 			}
 		}
@@ -155,18 +159,18 @@ public class ConvLayer extends Layer{
 		}
 	}
 	
-	public void backpropagate(double[] outputErrors) {
+	public void backpropagate(double[][][] outputErrors) {
 		//save output delta in multidimensional array
 		for(int d=0; d<this.outputDepth; d++) {
 			for(int h=0; h<this.outputHeight; h++) {
 				for(int w=0; w<this.outputWidth; w++) {
-					this.outDeltas[d][h][w] = outputErrors[d*this.outputWidth*this.outputHeight + h*this.outputWidth + w];
+					this.outDeltas[d][h][w] = outputErrors[d][h][w];
 				}
 			}
 		}
 		
 		//create array to hold and pass the input errors
-		double[] inDeltas = new double[this.inputDepth*this.inputHeight*this.inputWidth];
+		double[][][] inDeltas = new double[this.inputDepth][this.inputHeight][this.inputWidth];
 		
 		//for each input pixel
 		for(int p=0; p<this.inputDepth; p++) {	//for each input/kernel depth slice
@@ -187,7 +191,7 @@ public class ConvLayer extends Layer{
 					tmpD = tmpD*this.inActivations[p][m][n]*(1 - this.inActivations[p][m][n]);
 					
 					//save
-					inDeltas[p*this.inputHeight*this.inputWidth + m*this.inputWidth + n] = tmpD;
+					inDeltas[p][m][n] = tmpD;
 				}
 			}
 		}
