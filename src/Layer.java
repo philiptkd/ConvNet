@@ -6,11 +6,13 @@ public class Layer {
 	private Layer nextLayer;
 
 	public void feedForward(double[][][] inputActivations) {
-		
+		System.out.println("This should not be reached.");
 	}
 	
 	public void backpropagate(double[][][] outputErors) {
-		
+		if(prevLayer != null) {
+			System.out.println("This should not be reached.");
+		}
 	}
 	
 	//sets this layer's next layer

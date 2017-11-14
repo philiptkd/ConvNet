@@ -179,9 +179,11 @@ public class ConvLayer extends Layer{
 					
 					//calculate the dot product of the flipped kernel with the output errors
 					double tmpD = 0;
+					int maxI = Math.min(this.outputHeight-1, m);
+					int maxJ = Math.min(this.outputWidth-1, n);
 					for(int q=0; q<this.outputDepth; q++) {
-						for(int i=0; i<this.outputHeight; i++) {
-							for(int j=0; j<this.outputWidth; j++) {
+						for(int i=Math.max(0, m-this.kernelHeight+1); i<=maxI; i++) {		//these two lines
+							for(int j=Math.max(0, n-this.kernelWidth+1); j<=maxJ; j++) {		//implement zero-padding
 								tmpD += this.outDeltas[q][i][j]*this.kernels[q][p][m-i][n-j];
 							}
 						}

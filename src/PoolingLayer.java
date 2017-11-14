@@ -89,7 +89,7 @@ public class PoolingLayer extends Layer{
 		
 	}
 	
-	public void backpropagation(double[][][] outputErrors) {
+	public void backpropagate(double[][][] outputErrors) {
 		//create array to hold the errors we pass back, initialized to zeros
 		double[][][] inDeltas = new double[this.inputDim[0]][this.inputDim[1]][this.inputDim[2]];
 		int[] maxIndices = new int[3];
