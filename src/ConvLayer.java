@@ -95,13 +95,13 @@ public class ConvLayer extends Layer{
 		this.outBiasesGrad = new double[this.numFilters];	//one for each filter
 		this.outZs = new double[this.outputDepth][this.outputHeight][this.outputWidth];
 		this.outDeltas = new double[this.outputDepth][this.outputHeight][this.outputWidth];
-		
+				
 		//initialize weights to have an acceptable variance
 		for(int p=0; p<this.numFilters; p++) {
 			for(int d=0; d<this.kernelDepth; d++) {
 				for(int k1=0; k1<this.kernelHeight; k1++) {
 					for(int k2=0; k2<this.kernelWidth; k2++) {
-						this.kernels[p][d][k1][k2] = rand.nextGaussian()/Math.sqrt(this.kernelDepth*this.kernelHeight*this.kernelWidth);
+						this.kernels[p][d][k1][k2] = rand.nextGaussian()/Math.sqrt(this.kernelHeight*this.kernelWidth);
 					}
 				}
 			}
