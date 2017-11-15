@@ -1,10 +1,84 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class Main {
 
 	public static void main(String[] args) {
-		//toyNet();
+		boolean trained = false;
 		
+		//print the intro
+		System.out.println("This is a program that demonstrates a convolutional neural network that classifies handwritten digits from the MNIST data set. " + 
+				"\nIt uses stochastic gradient descent with backpropagation to train the network."
+				+ "\nThe current network architecture is this: "
+				+ "\nConvLayer -> PoolingLayer -> ConvLayer -> PoolingLayer -> FCLayer."
+				+ "\n\nThe network may take a second or two to be set up.\n\n");
+		
+		//create the network
+		Network net = createNet();
+		
+		while(true) {
+			//print the user input options
+			System.out.println("Choose from the options below.\n");
+			System.out.println("[1] Train network");
+			System.out.println("[2] Load pre-trained network");
+			if(trained) {
+				System.out.println("[3] Display network accuracy on training data");
+				System.out.println("[4] Display network accuracy on testing data");
+				System.out.println("[5] Save network state to file");
+			}
+			System.out.println("[6] Exit");
+			
+			//wait for user input
+			int selection = 0;
+			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+			try {
+				selection = Integer.parseInt(br.readLine());
+			} catch (Exception e) {
+				System.out.println("Something went wrong. Please choose from the options below.");
+			}
+			
+			//switch on user input
+			try {
+				switch(selection) {
+				case 0:	//do nothing
+					break;
+				case 1:	//train network
+					net.trainNet(3, 10, 3.0);
+					trained = true;
+					break;
+				case 2:	//load pre-trained network
+					boolean successfulRead = net.readFromFile();
+					if(successfulRead) {
+						trained = true;
+					}
+					break;
+				case 3: //display network accuracy on training data
+					if(trained) {
+						net.testNet(0);
+					}
+					break;
+				case 4: //display network accuracy on testing data
+					if(trained) {
+						net.testNet(1);
+					}
+					break;
+				case 5: //save network state to file
+					if(trained) {
+						net.writeToFile();
+					}
+					break;
+				case 6: //exit
+					return;
+				}
+			}
+			catch (IOException e) {
+				System.out.println(e.getMessage());
+			}
+		}
+	}
+	
+	public static Network createNet() {
 		InitialLayer L0 = new InitialLayer(28*28);
 		
 		int[] A1InDim = {1,1,28*28};
@@ -47,19 +121,7 @@ public class Main {
 		
 		Layer[] layerList = {L0,A1,L2,L3,L4,L5,A6,L7,L8};
 		Network net = new Network(layerList, "mnist_train.csv", "mnist_test.csv", "weights");
-		
-		try {
-			//train net
-			net.trainNet(2, 10, 3.0);
-			
-			//test net
-			net.testNet();
-		} 
-		catch (IOException e) {
-			System.out.println(e.getMessage());
-		}
-		
-		
+		return net;
 	}
 	
 	public static void toyNet() {

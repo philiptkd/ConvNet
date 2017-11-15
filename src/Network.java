@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Random;
 
 public class Network {
@@ -64,7 +65,7 @@ public class Network {
 		
 		for(int epoch=0; epoch<epochs; epoch++) {	//for each epoch
 			shuffle(shuffledList);		//shuffle the training set order	
-			System.out.println("epoch: " + epoch);
+			System.out.print("epoch " + epoch + ": ");
 			
 			for(int miniBatch=0; miniBatch<shuffledList.length/miniBatchSize; miniBatch++) {	//for each miniBatch
 				for(int input=miniBatch*miniBatchSize; input<(miniBatch+1)*miniBatchSize; input++) {	//for each input image
@@ -94,24 +95,43 @@ public class Network {
 					this.orderedLayerList[i].updateWeights(learningRate, miniBatchSize);
 				}
 			}
+			//print accuracy against training data after each epoch
+			this.testNet(0);
 		}
 	}
 	
-	//get accuracy against the test set
-	public void testNet() throws IOException {
+	//get accuracy against either the training set or the test set
+	public void testNet(int dataSet) throws IOException {
+		int numImages;
+		int[][] images;
+		int[] labels;
+		
+		//test against training data
+		if(dataSet == 0) {
+			numImages = numTrainingImages;
+			images = trainingImages;
+			labels = trainingLabels;
+		}
+		//test against testing data
+		else {	//dataSet = 1
+			numImages = numTestingImages;
+			images = testingImages;
+			labels = testingLabels;
+		}
+		
 		int numCorrect = 0;
 		
-		for(int image=0; image<this.numTestingImages; image++) {
+		for(int image=0; image<numImages; image++) {
 			//load the input layer
 			for(int pixel=0; pixel<this.inputLayer.outputDim[2]; pixel++) {
-				this.inputLayer.activations[0][0][pixel] = (double)this.testingImages[image][pixel]/255.0;	//scale to 0-1
+				this.inputLayer.activations[0][0][pixel] = (double)images[image][pixel]/255.0;	//scale to 0-1
 			}
 			
 			//feed forward
 			this.inputLayer.feedForward(new double[0][0][0]);
 	
 			//load correct classification
-			int correctClassification = (int)testingLabels[image];
+			int correctClassification = (int)labels[image];
 			
 			//see if it classfied correctly
 			double highest = Double.NEGATIVE_INFINITY;
@@ -127,7 +147,7 @@ public class Network {
 			}
 		}
 		
-		System.out.println("Accuracy: " + (double)numCorrect/(double)this.numTestingImages);
+		System.out.println(100*(double)numCorrect/(double)numImages + "% accurate.");
 	}
 	
 	//gets the numbers of lines in the input files and saves them
@@ -198,12 +218,232 @@ public class Network {
 		}
 	}
 	
-	public void printInputActivations() {
-		for(int i=0; i<28; i++) {
-			for(int j=0; j<28; j++) {
-				System.out.format("%04f ", this.inputLayer.activations[0][0][i*28+j]);
+	//used to save network parameters to a file
+	public void writeToFile() {
+		RandomAccessFile writer = null;
+		try {
+			writer = new RandomAccessFile(this.weightsFileStr, "rw");
+
+			//write number of FC or Conv layers
+			int numImportantLayers = 0;
+			for(int i=0; i<this.orderedLayerList.length; i++) {
+				if(this.orderedLayerList[i] instanceof FullyConnectedLayer ||
+						this.orderedLayerList[i] instanceof ConvLayer) {
+					numImportantLayers++;
+				}
 			}
-			System.out.println("");
+			writer.writeDouble((double)numImportantLayers);
+			
+			//for each layer
+			for(int i=0; i<this.orderedLayerList.length; i++) {
+				Layer theLayer = this.orderedLayerList[i];
+				
+				//if it's a FC layer
+				if(theLayer instanceof FullyConnectedLayer) {
+					//write type of layer
+					writer.writeDouble(0.0); 	
+					
+					//write dimensions of weights
+					int outputLength = theLayer.outputDim[2];
+					int inputLength = theLayer.inputDim[2];
+					writer.writeDouble((double)outputLength);	
+					writer.writeDouble((double)inputLength);
+					
+					//write weights
+					for(int j=0; j<outputLength; j++) {
+						for(int k=0; k<inputLength; k++) {
+							writer.writeDouble(((FullyConnectedLayer) theLayer).weights[j][k]);
+						}
+					}
+					
+					//write dimensions of biases
+					writer.writeDouble((double)outputLength);
+					
+					//write biases
+					for(int j=0; j<outputLength; j++) {
+						writer.writeDouble(((FullyConnectedLayer) theLayer).outBiases[j]);
+					}
+				}
+				
+				//if it's a convolutional layer
+				else if(theLayer instanceof ConvLayer) {
+					//write type of layer
+					writer.writeDouble(1.0); 	
+					
+					//write dimensions of weights
+					int numFilters = ((ConvLayer) theLayer).numFilters;
+					int kernelDepth = ((ConvLayer) theLayer).kernelDepth;
+					int kernelHeight = ((ConvLayer) theLayer).kernelHeight;
+					int kernelWidth = ((ConvLayer) theLayer).kernelWidth;
+					writer.writeDouble((double)numFilters);
+					writer.writeDouble((double)kernelDepth);
+					writer.writeDouble((double)kernelHeight);
+					writer.writeDouble((double)kernelWidth);
+					
+					//write weights
+					for(int q=0; q<numFilters; q++) {
+						for(int p=0; p<kernelDepth; p++) {
+							for(int m=0; m<kernelHeight; m++) {
+								for(int n=0; n<kernelWidth; n++) {
+									writer.writeDouble(((ConvLayer) theLayer).kernels[q][p][m][n]);
+								}
+							}
+						}
+					}
+					
+					//write dimensions of biases
+					writer.writeDouble(numFilters);
+					
+					//write biases
+					for(int q=0; q<numFilters; q++) {
+						writer.writeDouble(((ConvLayer) theLayer).outBiases[q]);
+					}
+				}
+			}
+			
+			writer.close();
+		}
+		catch(Exception e) {
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	//used to load saved network parameters from a file
+	public boolean readFromFile() {
+		boolean successfulRead = false;
+		RandomAccessFile reader = null;
+		try {
+			reader = new RandomAccessFile(this.weightsFileStr, "r");
+			
+			//read number of important layers in file
+			int numLayers = (int)reader.readDouble();
+			
+			//check against number of layers in network
+			int numLayersInNet = 0;
+			for(int i=0; i<this.orderedLayerList.length; i++) {
+				if(this.orderedLayerList[i] instanceof FullyConnectedLayer ||
+						this.orderedLayerList[i] instanceof ConvLayer) {
+					numLayersInNet++;
+				}
+			}
+			
+			//return if they're not the same
+			if(numLayers != numLayersInNet) {
+				stopReading(reader);
+				return successfulRead;
+			}
+			
+			//get the first layer of the network
+			Layer theLayer = this.orderedLayerList[0];
+			
+			//for each important layer
+			for(int i=0; i<numLayers; i++) {
+				//get type of layer
+				int layerType = (int)reader.readDouble();
+				
+				//get next important layer in network
+				while(theLayer != null &&
+						!(theLayer instanceof FullyConnectedLayer) && 
+						!(theLayer instanceof ConvLayer)) {
+					theLayer = theLayer.getNextLayer();
+				}
+				
+				//if it's a FC layer
+				if(layerType == 0 && theLayer instanceof FullyConnectedLayer) {
+					//read the two weights dimensions
+					int outputLength = (int)reader.readDouble();
+					int inputLength = (int)reader.readDouble();
+					
+					//check against weights dimensions of network layer
+					if(theLayer.outputDim[2] != outputLength || theLayer.inputDim[2] != inputLength) {
+						stopReading(reader);
+						return successfulRead;
+					}
+					
+					//read the weights
+					for(int j=0; j<outputLength; j++) {
+						for(int k=0; k<inputLength; k++) {
+							((FullyConnectedLayer) theLayer).weights[j][k] = reader.readDouble();
+						}
+					}
+					
+					//read the one biases dimension
+					if((int)reader.readDouble() != outputLength) {
+						stopReading(reader);
+						return successfulRead;
+					}
+					
+					//read the biases
+					for(int j=0; j<outputLength; j++) {
+						((FullyConnectedLayer) theLayer).outBiases[j] = reader.readDouble();
+					}
+				}
+				
+				//if it's a convolutional layer
+				else if(layerType == 1 && theLayer instanceof ConvLayer) {
+					//read the four weights dimensions
+					int numFilters = (int)reader.readDouble();
+					int kernelDepth = (int)reader.readDouble();
+					int kernelHeight = (int)reader.readDouble();
+					int kernelWidth = (int)reader.readDouble();
+					
+					//check against weights dimensions of network layer
+					if(((ConvLayer) theLayer).numFilters != numFilters ||
+							((ConvLayer) theLayer).kernelDepth != kernelDepth ||
+							((ConvLayer) theLayer).kernelHeight != kernelHeight ||
+							((ConvLayer) theLayer).kernelWidth != kernelWidth){
+						stopReading(reader);
+						return successfulRead;
+					}
+					
+					//read the weights
+					for(int q=0; q<numFilters; q++) {
+						for(int p=0; p<kernelDepth; p++) {
+							for(int m=0; m<kernelHeight; m++) {
+								for(int n=0; n<kernelWidth; n++) {
+									((ConvLayer) theLayer).kernels[q][p][m][n] = reader.readDouble();
+								}
+							}
+						}
+					}
+					
+					//read the one biases dimension
+					if(reader.readDouble() != numFilters) {
+						stopReading(reader);
+						return successfulRead;
+					}
+					
+					//read the biases
+					for(int q=0; q<numFilters; q++) {
+						((ConvLayer) theLayer).outBiases[q] = reader.readDouble();
+					}
+				}
+				
+				else {
+					stopReading(reader);
+					return successfulRead;
+				}
+				
+				//go to next layer
+				theLayer = theLayer.getNextLayer();
+			}
+			
+			reader.close();
+			successfulRead = true;
+		}
+		catch(Exception e) {
+			System.out.println(e.getMessage());
+		}
+		
+		return successfulRead;
+	}
+	
+	private void stopReading(RandomAccessFile reader) {
+		System.out.println("This weights file is incompatible with the current network.");
+		try {
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }
