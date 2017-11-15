@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Random;
@@ -19,13 +20,14 @@ public class Network {
 	private String trainingFileStr;
 	private String testingFileStr;
 	private String weightsFileStr;
+	private String outputFileStr;
 	private InitialLayer inputLayer;
 	private FinalLayer outputLayer;
 	
 	private static Random rand = new Random();
 	
 	//constructor
-	public Network(Layer[] orderedLayerList, String trainingFileStr, String testingFileStr, String weightsFileStr) {
+	public Network(Layer[] orderedLayerList, String trainingFileStr, String testingFileStr, String weightsFileStr, String outputFileStr) {
 		//save list of layers
 		this.orderedLayerList = new Layer[orderedLayerList.length];
 		for(int i=0; i<orderedLayerList.length; i++) {
@@ -39,6 +41,7 @@ public class Network {
 		this.trainingFileStr = trainingFileStr;
 		this.testingFileStr = testingFileStr;
 		this.weightsFileStr = weightsFileStr;
+		this.outputFileStr = outputFileStr;
 		
 		//try to connect all the layers in the ordered list of layers
 		try {
@@ -96,7 +99,7 @@ public class Network {
 				}
 			}
 			//print accuracy against training data after each epoch
-			this.testNet(0);
+			//this.testNet(0);
 		}
 	}
 	
@@ -147,7 +150,10 @@ public class Network {
 			}
 		}
 		
-		System.out.println(100*(double)numCorrect/(double)numImages + "% accurate.");
+		//System.out.println(100*(double)numCorrect/(double)numImages + "% accurate.");
+		FileWriter writer = new FileWriter(outputFileStr, true);
+		writer.write(Double.toString((double)numCorrect/(double)numImages) + "\n");
+		writer.close();
 	}
 	
 	//gets the numbers of lines in the input files and saves them

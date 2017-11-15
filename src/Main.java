@@ -1,80 +1,45 @@
-import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 public class Main {
-
+	private static String trainCSVFileString;
+	private static String testCSVFileString;
+	private static String weightsFileString;
+	private static String outputCSVFileString;
+	private static int task1;
+	private static int task2;
+	
 	public static void main(String[] args) {
-		boolean trained = false;
+		//check command line arguments
+		boolean argsGood = getArgs(args);
+		if(!argsGood) {
+			return;
+		}
 		
-		//print the intro
-		System.out.println("This is a program that demonstrates a convolutional neural network that classifies handwritten digits from the MNIST data set. " + 
-				"\nIt uses stochastic gradient descent with backpropagation to train the network."
-				+ "\nThe current network architecture is this: "
-				+ "\nConvLayer -> PoolingLayer -> ConvLayer -> PoolingLayer -> FCLayer."
-				+ "\n\nThe network may take a second or two to be set up.\n\n");
-		
-		//create the network
 		Network net = createNet();
 		
-		while(true) {
-			//print the user input options
-			System.out.println("Choose from the options below.\n");
-			System.out.println("[1] Train network");
-			System.out.println("[2] Load pre-trained network");
-			if(trained) {
-				System.out.println("[3] Display network accuracy on training data");
-				System.out.println("[4] Display network accuracy on testing data");
-				System.out.println("[5] Save network state to file");
+		try {
+			//do task1
+			if(task1 == 1) {
+				net.trainNet(1, 10, 3.0);
 			}
-			System.out.println("[6] Exit");
-			
-			//wait for user input
-			int selection = 0;
-			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			try {
-				selection = Integer.parseInt(br.readLine());
-			} catch (Exception e) {
-				System.out.println("Something went wrong. Please choose from the options below.");
+			else {	//task1 = 2
+				net.readFromFile();
 			}
 			
-			//switch on user input
-			try {
-				switch(selection) {
-				case 0:	//do nothing
-					break;
-				case 1:	//train network
-					net.trainNet(3, 10, 3.0);
-					trained = true;
-					break;
-				case 2:	//load pre-trained network
-					boolean successfulRead = net.readFromFile();
-					if(successfulRead) {
-						trained = true;
-					}
-					break;
-				case 3: //display network accuracy on training data
-					if(trained) {
-						net.testNet(0);
-					}
-					break;
-				case 4: //display network accuracy on testing data
-					if(trained) {
-						net.testNet(1);
-					}
-					break;
-				case 5: //save network state to file
-					if(trained) {
-						net.writeToFile();
-					}
-					break;
-				case 6: //exit
-					return;
-				}
+			//do task2
+			if(task2 == 3) {
+				net.testNet(0); 	//against training data
 			}
-			catch (IOException e) {
-				System.out.println(e.getMessage());
+			else if(task2 == 4) {
+				net.testNet(1); 	//against testing data
 			}
+			else { //task2 = 5
+				net.writeToFile();
+			}
+		}
+		catch(IOException e) {
+			System.out.println(e.getMessage());
 		}
 	}
 	
@@ -120,8 +85,80 @@ public class Main {
 		}
 		
 		Layer[] layerList = {L0,A1,L2,L3,L4,L5,A6,L7,L8};
-		Network net = new Network(layerList, "mnist_train.csv", "mnist_test.csv", "weights");
+		Network net = new Network(layerList, trainCSVFileString, testCSVFileString, weightsFileString, outputCSVFileString);
 		return net;
+	}
+
+	//to check if the command line arguments are good
+	private static boolean getArgs(String[] args) {
+		//ensure there are five command line arguments
+		if(args.length != 6) {
+			System.out.println("This takes 6 arguments: task1, task2, trainCSVFile, testCSVFile, weightsFile, and outputCSVFile");
+			System.out.println("[1]: Train Net");
+			System.out.println("[2]: Load From File");
+			System.out.println("[3]: Print Accuracy on Training Data");
+			System.out.println("[4]: Print Accuracy on Test Data");
+			System.out.println("[5]: Save to File");
+			return false;
+		}
+		
+		//get command line arguments
+		trainCSVFileString = args[2];
+		testCSVFileString = args[3];
+		weightsFileString = args[4];
+		outputCSVFileString = args[5];
+		
+		//see if files exist
+		File trainFile = new File(trainCSVFileString);
+		File testFile = new File(testCSVFileString);
+		File weightsFile = new File(weightsFileString);
+		File outputFile = new File(outputCSVFileString);
+		
+		//build error string to print
+		String errorString = "";
+		try {
+			task1 = Integer.parseInt(args[0]);
+			task2 = Integer.parseInt(args[1]);
+			
+			if(task1 < 1 || task1 > 2) {
+				errorString += "task1 should be 1 or 2";
+			}
+			if(task2 < 3 || task2 > 5) {
+				errorString += "task2 should be 3, 4, or 5";
+			}
+		}
+		catch(Error NumberFormatException) {
+			errorString += "task1 and task2 should be integers between 1 and 5";
+		}
+		if(!trainFile.isFile()) {
+			errorString += trainCSVFileString + " not found.\n";
+		}
+		if(!testFile.isFile()) {
+			errorString += testCSVFileString + " not found.\n";
+		}
+		if(!weightsFile.isFile()) {
+			try {
+				weightsFile.createNewFile();
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+			}
+			//errorString += weightsFileString + " not found.\n";
+		}
+		if(!outputFile.isFile()) {
+			try {
+				outputFile.createNewFile();
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+			}
+			//errorString += outputCSVFileString + " not found.\n";
+		}
+		
+		if(errorString != "") {
+			System.out.println(errorString);
+			return false;
+		}
+		
+		return true;
 	}
 	
 	public static void toyNet() {
@@ -156,7 +193,7 @@ public class Main {
 		
 		//create network
 		Layer[] layerList = {L0,A1,L2,L3,A4,L5};
-		Network net = new Network(layerList, "mnist_train.csv", "mnist_test.csv", "weights");
+		Network net = new Network(layerList, "mnist_train.csv", "mnist_test.csv", "weights", "output.csv");
 		
 		//create toy input
 		double[][][] toyInput = {{{1,0,1,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1,0,0,1,1,0,1,0,1,0,0,0,0,0,1,1,1,0,1,0,0,0,1,0,1,1,0,0,0,1,0,0,1,1,0,1,0,0,0,0,1,1,0,0,0,1}}};
