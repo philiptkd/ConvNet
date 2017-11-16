@@ -181,6 +181,9 @@ public class Network {
 		//create file writer
 		FileWriter writer = new FileWriter(outputFileStr, true);
 		
+		//write name of weights file
+		writer.write(this.weightsFileStr + ",");
+		
 		//write percent correct for each digit
 		for(int i=0; i<this.digitsCorrect.length; i++) {
 			writer.write(Double.toString((double)this.digitsCorrect[i]/(double)this.digitsSeen[i]) + ",");
