@@ -6,6 +6,10 @@ import java.io.RandomAccessFile;
 import java.util.Random;
 
 public class Network {
+	//lists to hold number of digits seen and number of each digit correctly classified
+	private int[] digitsCorrect = new int[10];
+	private int[] digitsSeen = new int[10];
+	
 	//variables to hold numbers of images
 	public int numTrainingImages = 0;
 	public int numTestingImages = 0;
@@ -68,6 +72,8 @@ public class Network {
 		
 		for(int epoch=0; epoch<epochs; epoch++) {	//for each epoch
 			shuffle(shuffledList);		//shuffle the training set order	
+			setToZero(this.digitsCorrect);	//reset digit statistics
+			setToZero(this.digitsSeen);
 			System.out.print("epoch " + epoch + ": ");
 			
 			for(int miniBatch=0; miniBatch<shuffledList.length/miniBatchSize; miniBatch++) {	//for each miniBatch
@@ -103,6 +109,32 @@ public class Network {
 		}
 	}
 	
+	private void recordDigitInfo(int correctClassification) {
+		//see if it classfied correctly
+		double highest = Double.NEGATIVE_INFINITY;
+		int classification = 0;	//arbitrary
+		for(int j=0; j<this.outputLayer.inputDim[2]; j++) {
+			if(this.outputLayer.activations[j] > highest) {
+				highest = this.outputLayer.activations[j];
+				classification = j;
+			}
+		}
+		
+		//record seeing this digit
+		this.digitsSeen[correctClassification] += 1;
+		
+		//record a correct answer if it happened
+		if(classification == correctClassification) {
+			this.digitsCorrect[classification] += 1;
+		}
+	}
+
+	private void setToZero(int[] list) {
+		for(int i=0; i<list.length; i++) {
+			list[i] = 0;
+		}
+	}
+
 	//get accuracy against either the training set or the test set
 	public void testNet(int dataSet) throws IOException {
 		int numImages;
@@ -121,9 +153,7 @@ public class Network {
 			images = testingImages;
 			labels = testingLabels;
 		}
-		
-		int numCorrect = 0;
-		
+				
 		for(int image=0; image<numImages; image++) {
 			//load the input layer
 			for(int pixel=0; pixel<this.inputLayer.outputDim[2]; pixel++) {
@@ -136,22 +166,27 @@ public class Network {
 			//load correct classification
 			int correctClassification = (int)labels[image];
 			
-			//see if it classfied correctly
-			double highest = Double.NEGATIVE_INFINITY;
-			int classification = 0;	//arbitrary
-			for(int j=0; j<this.outputLayer.inputDim[2]; j++) {
-				if(this.outputLayer.activations[j] > highest) {
-					highest = this.outputLayer.activations[j];
-					classification = j;
-				}
-			}
-			if(classification == correctClassification) {
-				numCorrect = numCorrect + 1;
-			}
+			//record digit information
+			this.recordDigitInfo(correctClassification);
+		}
+		
+		//get total count of numbers
+		int numCorrect = 0;
+		for(int i=0; i<this.digitsCorrect.length; i++) {
+			numCorrect += this.digitsCorrect[i];
 		}
 		
 		//System.out.println(100*(double)numCorrect/(double)numImages + "% accurate.");
+		
+		//create file writer
 		FileWriter writer = new FileWriter(outputFileStr, true);
+		
+		//write percent correct for each digit
+		for(int i=0; i<this.digitsCorrect.length; i++) {
+			writer.write(Double.toString((double)this.digitsCorrect[i]/(double)this.digitsSeen[i]) + ",");
+		}
+		
+		//write total percent correct
 		writer.write(Double.toString((double)numCorrect/(double)numImages) + "\n");
 		writer.close();
 	}
